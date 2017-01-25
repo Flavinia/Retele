@@ -1,0 +1,213 @@
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <errno.h>
+#include <unistd.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <netdb.h>
+#include <string.h>
+
+/* codul de eroare returnat de anumite apeluri */
+extern int errno;
+
+/* portul de conectare la server*/
+int port;
+
+
+void functii_utilizator(int sd) {
+	int nr;
+	printf("\n\n\n\n-----------------Padurea Sherwood----------------- \n\n");
+	printf("Ai ajuns la intrarea in padurea Sherwood.\n");
+	printf("Pentru a traversa padurea trebuie sa te loghezi\n");
+	printf("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
+	printf("|   Tasta 1 daca esti nobil.                |\n");                
+	printf("|   Tasta 2 daca esti seriful de Nottingham.|\n");
+	printf("|   Tasta 3 daca esti Robin Hood.           |\n");        
+	printf("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
+	printf("           Astept sa te loghezi.\n");
+	printf("--------------------------------------------------\n\n\n");
+	/*scanf ("%d", &nr);
+	if(write(sd, &nr, sizeof(int)) <= 0) {
+	perror(" Eroare la write catre server\n");
+	return -1;
+	}
+
+	if(read(sd, &nr, sizeof(int)) <= 0) {
+	perror("Eroare la read de la server\n");
+	return -1;
+	}
+	return nr;*/
+}
+
+int main(int argc, char *argv[])
+{
+	int sd;			// descriptorul de socket
+	struct sockaddr_in server;	// structura folosita pentru conectare 
+	char msg[100];		// mesajul trimis
+
+	/* exista toate argumentele in linia de comanda? */
+	if (argc != 3)
+	{
+		printf("Sintaxa: %s <adresa_server> <port>\n", argv[0]);
+		return -1;
+	}
+
+	/* stabilim portul */
+	port = atoi(argv[2]);
+
+	/* cream socketul */
+	if ((sd = socket(AF_INET, SOCK_STREAM, 0)) == -1)
+	{
+		perror("Eroare la socket().\n");
+		return errno;
+	}
+
+	/* umplem structura folosita pentru realizarea conexiunii cu serverul */
+	/* familia socket-ului */
+	server.sin_family = AF_INET;
+	/* adresa IP a serverului */
+	server.sin_addr.s_addr = inet_addr(argv[1]);
+	/* portul de conectare */
+	server.sin_port = htons(port);
+
+	/* ne conectam la server */
+	if (connect(sd, (struct sockaddr *) &server, sizeof(struct sockaddr)) == -1)
+	{
+		perror("[client]Eroare la connect().\n");
+		return errno;
+	}
+
+	while (1) {
+		char opt[3];
+		int nr;
+		char caz[3];
+		functii_utilizator(sd);
+		scanf("%2s", opt);
+		nr = atoi(opt);
+		int ok = 0;
+		volatile int robin = 0;
+		volatile int serif = 0;
+		time_t t;
+		srand((unsigned)time(&t));
+		int suma = rand() % 10000 + 200;
+
+		
+
+		if (nr != 1 && nr != 2 && nr != 3){
+			close(sd);
+			printf("Nu o sa traversezi padurea acum. Mai incearca. Se deconecteaza. \n");
+			return -1;
+		}
+		else if (nr == 1){
+			printf("Un nobil vrea sa traverseze padurea Sherwood? Ai grija, Robin Hood poate fi prin apropiere. \n ");
+			printf("Suma de galbeni pe care o detii este de %d \n", suma);
+			bzero(msg, 100);
+			//strcat(msg, "Verifica daca Robin este in padure si trimite-mi raspunsul pentru nobil. \n");
+			//printf("%s \n", msg);
+			
+			strcat(caz, "1");
+			if (write(sd, caz, sizeof(caz)) <= 0) {
+				perror("[client]Eroare la write() spre server.\n");
+				return errno;
+			}
+			else { printf("[client] Cazul a fost trimis catre server. \n"); }
+			//primim raspunsul serverului
+			bzero(msg, 100);
+			fflush(stdout);
+			if (read(sd, msg, 100) <= 0) {
+				printf("[client]Eroare la read() de la server.\n");
+			}
+			else printf("[client] Am citit raspunsul serverului la caz \n%s\n", msg);
+			while (strcmp("Robin nu este in padure. Poti traversa. ", msg) != 0) {
+				printf("[client] Robin este in padure, taxa de intrare: 100 galbeni. \n");
+				suma = suma - 100;
+				printf("[client] Suma actuala: %d \n", suma);
+				sleep(5);
+			}
+			if (suma < 100){
+				printf("[client] Ai pierdut toti banii si nu mai poti juca, vei fi deconectat. \n");
+				return 0;
+			}
+			else {	sleep(3);
+				printf("[client] Nobilul a reusit sa traverseze padurea si s-a deconectat.\n");
+			
+				return 0;
+			}
+		}// if(nr==1)
+		else while (nr==2) {
+			//printf("Seriful de Nottingham doreste sa verifice padurea. \n");	
+			
+			ok = ok + 1;
+			strcat(caz, "2");
+			if (write(sd, caz, sizeof(caz)) <= 0) {
+				perror("[client]Eroare la write() spre server.\n");
+				return errno; }
+			bzero(msg,100);
+			fflush(stdout);
+			if(read(sd, msg, 100) <= 0)	 {
+				printf("[client]Eroare la read() de la server.\n");
+				} //else printf("Aflam daca seriful se afla in padure acum. \n");
+			
+			if (strcmp("Seriful se afla in padure.", msg) == 0) 
+					printf("Seriful se afla in padure chiar acum. Daca Robin este conectat, el va fi deconectat pentru 15 secunde. \n");
+					int serif = 1;
+					char caz_serif[3];
+					sprintf(caz_serif, "%d", serif);
+			if(write(sd, caz_serif, sizeof(caz_serif)) <= 0) {
+				perror("[client]Eroare la write() spre server.\n");
+				return errno; }
+			sleep(5);
+			printf("Seriful pleaca din padure.\n");
+			char timp_serif[3];
+			if(read(sd, timp_serif, 3) <= 0)	 {
+			printf("[client]Eroare la read() de la server.\n");
+			} else {
+					int timp = atoi(timp_serif);
+					printf("Dar seriful se va intoarce in %d secunde. \n", timp);
+					}
+			printf("Pentru a va deconecta apasati CTRL + C\n\n");	
+			if(ok > 1){
+			bzero(msg, 100);			
+			if(read(sd, msg, 100) <= 0) {
+				printf("[client]Eroare la read() de la server.\n");} 
+			if(strcmp(msg,"Seriful este deja logat.") == 0) { printf("Seriful este deja conectat. Incearca o alta reconectare. \n");
+			return -1;}
+			}
+
+		} // while(nr==2)
+			while(nr==3) {
+				printf("Robin Hood doreste sa traverseze padurea. \n");
+				strcat(caz, "3");
+				if (write(sd, caz, sizeof(caz)) <= 0) {
+				perror("[client]Eroare la write() spre server.\n");
+				return errno; }
+
+				
+				bzero(msg,100);
+				if(read(sd, msg, 100) <= 0)	 {
+				printf("[client]Eroare la read() de la server.\n");
+				} else printf("Cazul a fost primit.\n");
+
+				if(strcmp(msg,"Seriful e in padure.") == 0) {
+					
+					printf("Va trebui sa astepti 15 secunde pana la o noua reconectare. \n");
+
+					sleep(15);
+					while (serif == 1){
+						printf("Seriful este din nou in padure. Va trebui sa astepti inca 15 secunde pentru o noua reconectare. \n");
+					sleep(15);
+					}
+				//aici dau fail
+				} else {
+				printf("Robin Hood este acum in padure. \n Daca vreun nobil va incerca sa traverseze el va pierde 100 de galbeni. \n");
+						
+
+				printf("Pentru a va deconecta apasati CTRL + C\n\n");
+						}
+		} // while(nr==3)
+		 //trimitem cazul clientului catre server
+	
+}//while server
+	return 0;
+}
